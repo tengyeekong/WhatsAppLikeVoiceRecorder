@@ -11,6 +11,9 @@
 
 This library helps you to record the voice, with the style of whatsapp.
 
+## Updates:
+Added swipe up to lock recording.
+
 ##### It is fully integrated with Kotlin and androidX.
 
 <p align="center">
