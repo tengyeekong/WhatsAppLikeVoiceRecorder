@@ -98,7 +98,7 @@ class RecordView : RelativeLayout {
 
     fun setRecordLockView(recordLockView: RecordLockView?): RecordView? {
         this.recordLockView = recordLockView
-        this.recordLockView?.getLayoutLock()?.visibility = View.INVISIBLE
+        this.recordLockView?.visibility = View.INVISIBLE
         hideViews(true)
         return this
     }
@@ -221,8 +221,8 @@ class RecordView : RelativeLayout {
         if (hideSmallMic)
             smallBlinkingMic?.visibility = View.GONE
 
-        if (recordLockView?.getLayoutLock()?.visibility == View.VISIBLE)
-            recordLockView?.getLayoutLock()?.showOut()
+        if (recordLockView?.visibility == View.VISIBLE)
+            recordLockView?.showOut()
         recordLockView?.getImageViewLockArrow()?.clearAnimation()
 
         recordButton?.run {
@@ -239,7 +239,7 @@ class RecordView : RelativeLayout {
         counterTime?.visibility = View.VISIBLE
 
         recordLockView?.run {
-            getLayoutLock()?.showIn()
+            showIn()
             getImageViewLockArrow()?.clearAnimation()
             getImageViewLockArrow()?.startAnimation(animJumpFast)
             getImageViewLock()?.startAnimation(animJump)
@@ -251,7 +251,7 @@ class RecordView : RelativeLayout {
         mStopView?.visibility = View.VISIBLE
 
         recordLockView?.run {
-            getLayoutLock()?.showOut()
+            showOut()
             getImageViewLockArrow()?.clearAnimation()
         }
 
@@ -401,9 +401,9 @@ class RecordView : RelativeLayout {
                 slideToCancelLayout?.startShimmerAnimation()
             }
 
-            if (recordLockView?.getLayoutLock()?.visibility == View.GONE)
+            if (recordLockView?.visibility == View.GONE)
                 recordLockView?.run {
-                    getLayoutLock()?.showIn()
+                    showIn()
                     getImageViewLockArrow()?.clearAnimation()
                     getImageViewLockArrow()?.startAnimation(animJumpFast)
                     getImageViewLock()?.startAnimation(animJump)
@@ -458,7 +458,7 @@ class RecordView : RelativeLayout {
                     if (initialX - motionEvent.rawX >= swipeDistance && !isHorizontal) {
                         isHorizontal = true
                         recordLockView?.run {
-                            getLayoutLock()?.showOut()
+                            showOut()
                             getImageViewLockArrow()?.clearAnimation()
                         }
                     }
