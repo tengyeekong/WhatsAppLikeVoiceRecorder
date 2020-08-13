@@ -6,14 +6,14 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.content.res.AppCompatResources
-import androidx.appcompat.widget.AppCompatImageView
+import com.google.android.material.floatingactionbutton.FloatingActionButton
 
 
 /**
  * Created by Devlomi on 13/12/2017.
  */
 
-class RecordButton : AppCompatImageView, View.OnTouchListener, View.OnClickListener {
+class RecordButton : FloatingActionButton, View.OnTouchListener, View.OnClickListener {
 
     private var scaleAnim: ScaleAnim? = null
     private var recordView: RecordView? = null
@@ -44,11 +44,14 @@ class RecordButton : AppCompatImageView, View.OnTouchListener, View.OnClickListe
             val typedArray = context.obtainStyledAttributes(attrs, R.styleable.RecordButton)
 
             imgResource = typedArray.getResourceId(R.styleable.RecordButton_mic_icon, -1)
-            lockSendResource = typedArray.getResourceId(R.styleable.RecordButton_lock_send_resource, -1)
+            lockSendResource =
+                typedArray.getResourceId(R.styleable.RecordButton_lock_send_resource, -1)
 
             if (imgResource != -1) {
                 setTheImageResource(imgResource)
             }
+
+            compatElevation = 0f
 
             typedArray.recycle()
         }
