@@ -419,13 +419,6 @@ class RecordView : RelativeLayout {
                 if (isLessThanOneSecond(time)) {
 
                     hideViews(true)
-                    animationHelper?.moveRecordButtonAndSlideToCancelBack(
-                        recordButton,
-                        slideToCancelLayout,
-                        initialX,
-                        difX,
-                        initialY
-                    )
                     animationHelper?.clearAlphaAnimation(false)
                     animationHelper?.onAnimationEnd()
 
