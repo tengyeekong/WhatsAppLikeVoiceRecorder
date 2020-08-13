@@ -19,8 +19,11 @@ This library helps you to record the voice, with the style of whatsapp.
 
 ## Releases:
 
-#### Current release: [![](https://jitpack.io/v/SirLordPouya/WhatsAppLikeVoiceRecorder.svg)](https://jitpack.io/#SirLordPouya/WhatsAppLikeVoiceRecorder)
+#### Current release: [![](https://jitpack.io/v/tengyeekong/WhatsAppLikeVoiceRecorder.svg)](https://jitpack.io/#tengyeekong/WhatsAppLikeVoiceRecorder)
 
+
+## Updates:
+Added swipe up to lock recording.
 
 
 ## Usage:
