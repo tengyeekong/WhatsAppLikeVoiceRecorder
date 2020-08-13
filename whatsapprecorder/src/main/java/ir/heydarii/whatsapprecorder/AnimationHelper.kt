@@ -1,11 +1,14 @@
 package ir.heydarii.whatsapprecorder
 
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
 import android.animation.AnimatorSet
 import android.animation.ValueAnimator
 import android.annotation.SuppressLint
 import android.content.Context
 import android.os.Handler
 import android.view.View
+import android.view.View.*
 import android.view.animation.AccelerateDecelerateInterpolator
 import android.view.animation.AlphaAnimation
 import android.view.animation.Animation
@@ -15,9 +18,6 @@ import android.widget.ImageView
 
 import androidx.vectordrawable.graphics.drawable.AnimatedVectorDrawableCompat
 import androidx.vectordrawable.graphics.drawable.AnimatorInflaterCompat
-
-import android.view.View.INVISIBLE
-import android.view.View.VISIBLE
 
 class AnimationHelper(
     private val context: Context,
@@ -54,31 +54,31 @@ class AnimationHelper(
             context,
             R.animator.delete_mic_animation
         ) as AnimatorSet
-        micAnimation!!.setTarget(smallBlinkingMic) // set the view you want to animate
+        micAnimation?.setTarget(smallBlinkingMic) // set the view you want to animate
 
         translateAnimation1 = TranslateAnimation(0f, 0f, basketInitialY, basketInitialY - 90)
-        translateAnimation1!!.duration = 250
+        translateAnimation1?.duration = 250
 
         translateAnimation2 = TranslateAnimation(0f, 0f, basketInitialY - 130, basketInitialY)
-        translateAnimation2!!.duration = 350
+        translateAnimation2?.duration = 350
 
-        micAnimation!!.start()
+        micAnimation?.start()
         basketImg.setImageDrawable(animatedVectorDrawable)
 
         handler1 = Handler()
-        handler1!!.postDelayed({
+        handler1?.postDelayed({
             basketImg.visibility = VISIBLE
             basketImg.startAnimation(translateAnimation1)
         }, 350)
 
-        translateAnimation1!!.setAnimationListener(object : Animation.AnimationListener {
+        translateAnimation1?.setAnimationListener(object : Animation.AnimationListener {
             override fun onAnimationStart(animation: Animation) {}
 
             override fun onAnimationEnd(animation: Animation) {
 
-                animatedVectorDrawable!!.start()
+                animatedVectorDrawable?.start()
                 handler2 = Handler()
-                handler2!!.postDelayed({
+                handler2?.postDelayed({
                     basketImg.startAnimation(translateAnimation2)
                     smallBlinkingMic.visibility = INVISIBLE
                     basketImg.visibility = INVISIBLE
@@ -86,11 +86,10 @@ class AnimationHelper(
             }
 
             override fun onAnimationRepeat(animation: Animation) {
-
             }
         })
 
-        translateAnimation2!!.setAnimationListener(object : Animation.AnimationListener {
+        translateAnimation2?.setAnimationListener(object : Animation.AnimationListener {
             override fun onAnimationStart(animation: Animation) {}
 
             override fun onAnimationEnd(animation: Animation) {
@@ -101,7 +100,7 @@ class AnimationHelper(
                 //if the user pressed the record button while the animation is running
                 // then do NOT call on Animation end
                 if (onBasketAnimationEndListener != null && !isStartRecorded) {
-                    onBasketAnimationEndListener!!.onAnimationEnd()
+                    onBasketAnimationEndListener?.onAnimationEnd()
                 }
             }
 
@@ -115,20 +114,20 @@ class AnimationHelper(
     fun resetBasketAnimation() {
         if (isBasketAnimating) {
 
-            translateAnimation1!!.reset()
-            translateAnimation1!!.cancel()
-            translateAnimation2!!.reset()
-            translateAnimation2!!.cancel()
+            translateAnimation1?.reset()
+            translateAnimation1?.cancel()
+            translateAnimation2?.reset()
+            translateAnimation2?.cancel()
 
-            micAnimation!!.cancel()
+            micAnimation?.cancel()
 
             smallBlinkingMic.clearAnimation()
             basketImg.clearAnimation()
 
             if (handler1 != null)
-                handler1!!.removeCallbacksAndMessages(null)
+                handler1?.removeCallbacksAndMessages(null)
             if (handler2 != null)
-                handler2!!.removeCallbacksAndMessages(null)
+                handler2?.removeCallbacksAndMessages(null)
 
             basketImg.visibility = INVISIBLE
             smallBlinkingMic.x = micX
@@ -140,8 +139,8 @@ class AnimationHelper(
     }
 
     fun clearAlphaAnimation(hideView: Boolean) {
-        alphaAnimation!!.cancel()
-        alphaAnimation!!.reset()
+        alphaAnimation?.cancel()
+        alphaAnimation?.reset()
         smallBlinkingMic.clearAnimation()
         if (hideView) {
             smallBlinkingMic.visibility = View.GONE
@@ -149,10 +148,11 @@ class AnimationHelper(
     }
 
     fun animateSmallMicAlpha() {
-        alphaAnimation = AlphaAnimation(0.0f, 1.0f)
-        alphaAnimation!!.duration = 500
-        alphaAnimation!!.repeatMode = Animation.REVERSE
-        alphaAnimation!!.repeatCount = Animation.INFINITE
+        alphaAnimation = AlphaAnimation(0.0f, 1.0f).apply {
+            duration = 500
+            repeatMode = Animation.REVERSE
+            repeatCount = Animation.INFINITE
+        }
         smallBlinkingMic.startAnimation(alphaAnimation)
     }
 
@@ -160,21 +160,32 @@ class AnimationHelper(
         recordBtn: RecordButton?,
         slideToCancelLayout: FrameLayout?,
         initialX: Float,
-        difX: Float
+        difX: Float,
+        initialY: Float,
+        isLocked: Boolean = false
     ) {
         if (recordBtn == null || slideToCancelLayout == null) return
 
-        val positionAnimator = ValueAnimator.ofFloat(recordBtn.x, initialX)
+        val positionAnimatorX = ValueAnimator.ofFloat(recordBtn.x, initialX)
+        val positionAnimatorY = ValueAnimator.ofFloat(recordBtn.y, initialY)
 
-        positionAnimator.interpolator = AccelerateDecelerateInterpolator()
-        positionAnimator.addUpdateListener { animation ->
+        positionAnimatorX.interpolator = AccelerateDecelerateInterpolator()
+        positionAnimatorY.interpolator = AccelerateDecelerateInterpolator()
+
+        positionAnimatorX.addUpdateListener { animation ->
             val x = animation.animatedValue as Float
             recordBtn.x = x
         }
+        positionAnimatorY.addUpdateListener { animation ->
+            val y = animation.animatedValue as Float
+            recordBtn.y = y
+        }
 
+        positionAnimatorX.duration = 100
+        positionAnimatorY.duration = 100
+        positionAnimatorX.start()
+        positionAnimatorY.start()
         recordBtn.stopScale()
-        positionAnimator.duration = 0
-        positionAnimator.start()
 
         // if the move event was not called ,then the difX will still 0 and there is no need to move it back
         if (difX != 0f) {
@@ -198,7 +209,7 @@ class AnimationHelper(
 
     fun onAnimationEnd() {
         if (onBasketAnimationEndListener != null)
-            onBasketAnimationEndListener!!.onAnimationEnd()
+            onBasketAnimationEndListener?.onAnimationEnd()
     }
 
     //check if the user started a new Record by pressing the RecordButton
@@ -206,4 +217,33 @@ class AnimationHelper(
         isStartRecorded = startRecorded
     }
 
+}
+
+fun View.showIn() {
+    visibility = VISIBLE
+    alpha = 0f
+    translationY = height.toFloat()
+    animate()
+        .setDuration(200)
+        .translationY(0f)
+        .setListener(object : AnimatorListenerAdapter() {
+        })
+        .alpha(1f)
+        .start()
+}
+
+fun View.showOut() {
+    visibility = VISIBLE
+    alpha = 1f
+    translationY = 0f
+    animate()
+        .setDuration(200)
+        .translationY(height.toFloat())
+        .setListener(object : AnimatorListenerAdapter() {
+            override fun onAnimationEnd(animation: Animator) {
+                visibility = GONE
+                super.onAnimationEnd(animation)
+            }
+        }).alpha(0f)
+        .start()
 }

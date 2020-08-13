@@ -13,6 +13,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         record_button.setRecordView(record_view)
+        record_view.setRecordLockView(record_lock_view)
 
         record_view.setOnRecordListener(object : OnRecordListener {
             override fun onStart() {

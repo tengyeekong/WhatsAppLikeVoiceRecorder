@@ -22,7 +22,6 @@ class RecordButton : AppCompatImageView, View.OnTouchListener, View.OnClickListe
     private var imgResource = 0
     private var lockSendResource = 0
 
-
     fun setRecordView(recordView: RecordView) {
         this.recordView = recordView
         recordView.setRecordButton(this)
@@ -54,9 +53,7 @@ class RecordButton : AppCompatImageView, View.OnTouchListener, View.OnClickListe
             typedArray.recycle()
         }
 
-
         scaleAnim = ScaleAnim(this)
-
 
         this.setOnTouchListener(this)
         this.setOnClickListener(this)
@@ -84,7 +81,6 @@ class RecordButton : AppCompatImageView, View.OnTouchListener, View.OnClickListe
         }
     }
 
-
     fun setTheImageResource(imageResource: Int) {
         val image = AppCompatResources.getDrawable(context, imageResource)
         setImageDrawable(image)
@@ -106,33 +102,27 @@ class RecordButton : AppCompatImageView, View.OnTouchListener, View.OnClickListe
         if (listenForRecord) {
             when (event.action) {
 
-                MotionEvent.ACTION_DOWN -> recordView!!.onActionDown(v as RecordButton, event)
+                MotionEvent.ACTION_DOWN -> recordView?.onActionDown(v as RecordButton, event)
 
+                MotionEvent.ACTION_MOVE -> recordView?.onActionMove(v as RecordButton, event)
 
-                MotionEvent.ACTION_MOVE -> recordView!!.onActionMove(v as RecordButton, event)
-
-                MotionEvent.ACTION_UP -> recordView!!.onActionUp(v as RecordButton)
+                MotionEvent.ACTION_UP -> recordView?.onActionUp(v as RecordButton)
             }
-
         }
         return listenForRecord
-
-
     }
 
-
     fun startScale() {
-        scaleAnim!!.start()
+        scaleAnim?.start()
     }
 
     fun stopScale() {
-        scaleAnim!!.stop()
+        scaleAnim?.stop()
     }
 
     fun setOnRecordClickListener(onRecordClickListener: OnRecordClickListener) {
         this.onRecordClickListener = onRecordClickListener
     }
-
 
     override fun onClick(v: View) {
         if (recordView?.isLocked == true) {
