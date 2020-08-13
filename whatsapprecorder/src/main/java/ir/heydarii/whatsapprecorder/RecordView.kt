@@ -13,6 +13,8 @@ import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import android.view.animation.Animation
+import android.view.animation.AnimationUtils
 import android.widget.Chronometer
 import android.widget.ImageView
 import android.widget.RelativeLayout
@@ -25,6 +27,7 @@ import java.io.File
 import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.math.abs
 
 
 /**
@@ -40,6 +43,7 @@ class RecordView : RelativeLayout {
     private var counterTime: Chronometer? = null
     private var timer = Timer()
     private var slideToCancel: TextView? = null
+    private var mStopView: TextView? = null
     private var slideToCancelLayout: ShimmerLayout? = null
     private var arrow: ImageView? = null
     private var initialX: Float = 0.toFloat()
@@ -60,29 +64,50 @@ class RecordView : RelativeLayout {
     private var animationHelper: AnimationHelper? = null
     private var audioPath = ""
     private var recorder: Recorder? = null
+    var isLocked = false
+    private var recordLockView: RecordLockView? = null
+    private var recordButton: RecordButton? = null
+    private var animJump: Animation? = null
+    private var animJumpFast: Animation? = null
 
+    private var lastX = 0f
+    private var lastY = 0f
+    private var firstX = 0f
+    private var firstY = 0f
 
     constructor(context: Context) : super(context) {
         this.mContext = context
         init(context, null, -1, -1)
-
     }
-
 
     constructor(context: Context, attrs: AttributeSet?) : super(context, attrs) {
         this.mContext = context
         init(context, attrs, -1, -1)
     }
 
-    constructor(context: Context, attrs: AttributeSet?, defStyleAttr: Int) : super(context, attrs, defStyleAttr) {
+    constructor(context: Context, attrs: AttributeSet?, defStyleAttr: Int) : super(
+        context,
+        attrs,
+        defStyleAttr
+    ) {
         this.mContext = context
         init(context, attrs, defStyleAttr, -1)
     }
 
-    private fun init(context: Context, attrs: AttributeSet?, defStyleAttr: Int, defStyleRes: Int) {
-        val view = View.inflate(context, R.layout.record_view_layout, null)
-        addView(view)
+    fun setRecordLockView(recordLockView: RecordLockView?): RecordView? {
+        this.recordLockView = recordLockView
+        hideViews(true)
+        return this
+    }
 
+    fun setRecordButton(recordButton: RecordButton?): RecordView? {
+        this.recordButton = recordButton
+        return this
+    }
+
+    private fun init(context: Context, attrs: AttributeSet?, defStyleAttr: Int, defStyleRes: Int) {
+        val view = View.inflate(context, R.layout.layout_record_view, null)
+        addView(view)
 
         val viewGroup = view.parent as ViewGroup
         viewGroup.clipChildren = false
@@ -93,34 +118,42 @@ class RecordView : RelativeLayout {
         counterTime = view.findViewById(R.id.counter_tv)
         basketImg = view.findViewById(R.id.basket_img)
         slideToCancelLayout = view.findViewById(R.id.shimmer_layout)
+        mStopView = view.findViewById(R.id.stopView)
 
+        animJump = AnimationUtils.loadAnimation(context, R.anim.jump)
+        animJumpFast = AnimationUtils.loadAnimation(context, R.anim.jump_fast)
 
         hideViews(true)
 
-
         if (attrs != null && defStyleAttr == -1 && defStyleRes == -1) {
             val typedArray = context.obtainStyledAttributes(
-                    attrs, R.styleable.RecordView,
-                    defStyleAttr, defStyleRes
+                attrs, R.styleable.RecordView,
+                defStyleAttr, defStyleRes
             )
 
-
-            val slideArrowResource = typedArray.getResourceId(R.styleable.RecordView_slide_to_cancel_arrow, -1)
-            val slideToCancelText = typedArray.getString(R.styleable.RecordView_slide_to_cancel_text)
+            val slideArrowResource =
+                typedArray.getResourceId(R.styleable.RecordView_slide_to_cancel_arrow, -1)
+            val slideToCancelText =
+                typedArray.getString(R.styleable.RecordView_slide_to_cancel_text)
             val slideMarginRight =
-                    typedArray.getDimension(R.styleable.RecordView_slide_to_cancel_margin_right, 30f).toInt()
-            val counterTimeColor = typedArray.getColor(R.styleable.RecordView_counter_time_color, -1)
-            val arrowColor = typedArray.getColor(R.styleable.RecordView_slide_to_cancel_arrow_color, -1)
-
-
-            val cancelBounds = typedArray.getDimensionPixelSize(R.styleable.RecordView_slide_to_cancel_bounds, -1)
+                typedArray.getDimension(R.styleable.RecordView_slide_to_cancel_margin_right, 30f)
+                    .toInt()
+            val counterTimeColor =
+                typedArray.getColor(R.styleable.RecordView_counter_time_color, -1)
+            val arrowColor =
+                typedArray.getColor(R.styleable.RecordView_slide_to_cancel_arrow_color, -1)
+            val cancelBounds =
+                typedArray.getDimensionPixelSize(R.styleable.RecordView_slide_to_cancel_bounds, -1)
+            val stopText = typedArray.getString(R.styleable.RecordView_stop_text)
 
             if (cancelBounds != -1)
-                setCancelBounds(cancelBounds.toFloat(), false)//don't convert it to pixels since it's already in pixels
-
+                setCancelBounds(
+                    cancelBounds.toFloat(),
+                    false
+                )//don't convert it to pixels since it's already in pixels
 
             if (slideArrowResource != -1) {
-                val slideArrow = AppCompatResources.getDrawable(getContext(), slideArrowResource)
+                val slideArrow = AppCompatResources.getDrawable(context, slideArrowResource)
                 arrow!!.setImageDrawable(slideArrow)
             }
 
@@ -130,41 +163,107 @@ class RecordView : RelativeLayout {
             if (counterTimeColor != -1)
                 setCounterTimeColor(counterTimeColor)
 
-
             if (arrowColor != -1)
                 setSlideToCancelArrowColor(arrowColor)
 
-
+            if (stopText != null)
+                mStopView?.text = stopText
 
             setMarginRight(slideMarginRight, true)
 
             typedArray.recycle()
         }
 
-
         animationHelper = AnimationHelper(context, basketImg!!, smallBlinkingMic!!)
 
+        mStopView?.setOnClickListener {
+            isLocked = false
+            val time = System.currentTimeMillis() - startTime
+            //if the time was less than one second then do not start basket animation
+            if (isLessThanOneSecond(time)) {
+                hideViews(true)
+                animationHelper!!.clearAlphaAnimation(false)
+                animationHelper!!.onAnimationEnd()
+            } else {
+                hideViews(false)
+                animationHelper!!.animateBasket(basketInitialY)
+            }
+            if (recordButton != null) animationHelper!!.moveRecordButtonAndSlideToCancelBack(
+                recordButton,
+                slideToCancelLayout,
+                initialX,
+                difX
+            )
+            counterTime?.stop()
+            slideToCancelLayout?.stopShimmerAnimation()
+            isSwiped = true
+            animationHelper!!.setStartRecorded(false)
+            if (recordListener != null) recordListener!!.onCancel()
+        }
     }
 
-
     private fun hideViews(hideSmallMic: Boolean) {
+        firstX = 0f
+        firstY = 0f
+        lastX = 0f
+        lastY = 0f
+        isLocked = false
         slideToCancelLayout!!.visibility = View.GONE
         counterTime!!.visibility = View.GONE
+        mStopView!!.visibility = View.GONE
         if (hideSmallMic)
             smallBlinkingMic!!.visibility = View.GONE
+        if (recordLockView != null) {
+            recordLockView!!.getLayoutLock()?.visibility = View.GONE
+            recordLockView!!.getLayoutLock()?.translationY = 0f
+            recordLockView!!.getImageViewLockArrow()?.clearAnimation()
+            recordLockView!!.getImageViewLock()?.clearAnimation()
+        }
+        if (recordButton != null && recordButton!!.getImageResource() != -1) {
+            recordButton!!.setTheImageResource(recordButton!!.getImageResource())
+        }
     }
 
     private fun showViews() {
+        mStopView!!.visibility = View.GONE
         slideToCancelLayout!!.visibility = View.VISIBLE
         smallBlinkingMic!!.visibility = View.VISIBLE
         counterTime!!.visibility = View.VISIBLE
+        if (recordLockView != null) {
+            recordLockView!!.getLayoutLock()?.visibility = View.VISIBLE
+            recordLockView!!.getImageViewLockArrow()?.clearAnimation()
+            recordLockView!!.getImageViewLock()?.clearAnimation()
+            recordLockView!!.getImageViewLockArrow()?.startAnimation(animJumpFast)
+            recordLockView!!.getImageViewLock()?.startAnimation(animJump)
+        }
     }
 
+    private fun showLockedViews() {
+        slideToCancelLayout!!.visibility = View.GONE
+        mStopView!!.visibility = View.VISIBLE
+        recordButton!!.stopScale()
+        if (recordLockView != null) {
+            recordLockView!!.getLayoutLock()?.visibility = View.GONE
+            recordLockView!!.getLayoutLock()?.translationY = 0f
+            recordLockView!!.getImageViewLockArrow()?.clearAnimation()
+            recordLockView!!.getImageViewLock()?.clearAnimation()
+        }
+        if (recordButton != null) {
+            if (recordButton!!.getLockSendResource() != -1) {
+                recordButton!!.setTheImageResource(recordButton!!.getLockSendResource())
+            }
+            animationHelper!!.moveRecordButtonAndSlideToCancelBack(
+                recordButton,
+                slideToCancelLayout,
+                initialX,
+                difX
+            )
+        }
+    }
 
     private fun isLessThanOneSecond(time: Long): Boolean {
         return time <= LESS_THAN_A_MINUTE_TIME
     }
-
 
     private fun playSound(soundRes: Int) {
 
@@ -186,21 +285,26 @@ class RecordView : RelativeLayout {
             }
 
         }
-
-
     }
 
-
     fun onActionDown(recordBtn: RecordButton, motionEvent: MotionEvent) {
+
+        if (isLocked) return
 
         if (recordListener != null)
             recordListener!!.onStart()
 
+        if (firstX == 0f) {
+            firstX = motionEvent.rawX
+        }
+
+        if (firstY == 0f) {
+            firstY = motionEvent.rawY
+        }
+
         animationHelper!!.setStartRecorded(true)
         animationHelper!!.resetBasketAnimation()
         animationHelper!!.resetSmallMic()
-
-
 
         recordBtn.startScale()
         slideToCancelLayout!!.startShimmerAnimation()
@@ -215,7 +319,6 @@ class RecordView : RelativeLayout {
 
         animationHelper!!.animateSmallMicAlpha()
 
-
         counterTime!!.base = SystemClock.elapsedRealtime()
         startTime = System.currentTimeMillis()
         counterTime!!.start()
@@ -226,7 +329,7 @@ class RecordView : RelativeLayout {
             override fun run() {
                 Handler(Looper.getMainLooper()).post {
                     elapsedTime = System.currentTimeMillis() - startTime
-                    recordListener?.onTikListener(elapsedTime)
+                    recordListener?.onTickListener(elapsedTime)
                 }
 
             }
@@ -234,20 +337,21 @@ class RecordView : RelativeLayout {
         }, 1000, 1000)
         isSwiped = false
         startRecording()
-
     }
 
     private fun startRecording() {
         setupRecorder()
         recorder?.startRecording()
-
     }
-
 
     fun onActionMove(recordBtn: RecordButton, motionEvent: MotionEvent) {
 
-
         val time = System.currentTimeMillis() - startTime
+
+        val motionX: Float = abs(firstX - motionEvent.rawX)
+        val motionY: Float = abs(firstY - motionEvent.rawY)
+
+        isLocked = motionY > motionX && firstY - lastY > 50
 
         if (!isSwiped) {
 
@@ -266,50 +370,54 @@ class RecordView : RelativeLayout {
                     animationHelper!!.animateBasket(basketInitialY)
                 }
 
-                animationHelper!!.moveRecordButtonAndSlideToCancelBack(recordBtn, slideToCancelLayout!!, initialX, difX)
+                animationHelper!!.moveRecordButtonAndSlideToCancelBack(
+                    recordBtn,
+                    slideToCancelLayout!!,
+                    initialX,
+                    difX
+                )
 
                 stopTimerAndChorno()
 
-
                 slideToCancelLayout!!.stopShimmerAnimation()
                 isSwiped = true
-
 
                 animationHelper!!.setStartRecorded(false)
 
                 if (recordListener != null)
                     recordListener!!.onCancel()
 
-
             } else {
-
 
                 //if statement is to Prevent Swiping out of bounds
                 if (motionEvent.rawX < initialX) {
                     recordBtn.animate()
-                            .x(motionEvent.rawX)
-                            .setDuration(0)
-                            .start()
-
+                        .x(motionEvent.rawX)
+                        .setDuration(0)
+                        .start()
 
                     if (difX == 0f)
                         difX = initialX - slideToCancelLayout!!.x
 
-
                     slideToCancelLayout!!.animate()
-                            .x(motionEvent.rawX - difX)
-                            .setDuration(0)
-                            .start()
+                        .x(motionEvent.rawX - difX)
+                        .setDuration(0)
+                        .start()
 
                 }
-
-
             }
-
         }
+
+        lastX = motionEvent.rawX
+        lastY = motionEvent.rawY
     }
 
     fun onActionUp(recordBtn: RecordButton) {
+        if (isLocked && mStopView!!.visibility != View.VISIBLE) {
+            showLockedViews()
+            return
+        }
+
         if (recorder != null) {
             recorder?.stopRecording()
             recorder = null
@@ -318,15 +426,17 @@ class RecordView : RelativeLayout {
         //if user has swiped then do not hide SmallMic since it will be hidden after swipe Animation
         hideViews(!isSwiped)
 
-
         if (!isSwiped)
             animationHelper?.clearAlphaAnimation(true)
 
-        animationHelper?.moveRecordButtonAndSlideToCancelBack(recordBtn, slideToCancelLayout!!, initialX, difX)
-
+        animationHelper?.moveRecordButtonAndSlideToCancelBack(
+            recordBtn,
+            slideToCancelLayout!!,
+            initialX,
+            difX
+        )
 
         stopTimerAndChorno()
-
 
         slideToCancelLayout!!.stopShimmerAnimation()
 
@@ -339,7 +449,6 @@ class RecordView : RelativeLayout {
 
             playSound(RECORD_ERROR)
 
-
         } else {
             animationHelper?.setStartRecorded(false)
 
@@ -348,15 +457,11 @@ class RecordView : RelativeLayout {
 
             if (recordListener != null && !isSwiped)
                 recordListener?.onFinish(elapsedTime, audioPath)
-
         }
-
-
     }
 
-
     private fun setMarginRight(marginRight: Int, convertToDp: Boolean) {
-        val layoutParams = slideToCancelLayout!!.layoutParams as RelativeLayout.LayoutParams
+        val layoutParams = slideToCancelLayout!!.layoutParams as LayoutParams
         if (convertToDp) {
             layoutParams.rightMargin = DpUtil.toPixel(marginRight.toFloat(), mContext!!).toInt()
         } else
@@ -366,8 +471,8 @@ class RecordView : RelativeLayout {
     }
 
 
-    fun setOnRecordListener(recrodListener: OnRecordListener) {
-        this.recordListener = recrodListener
+    fun setOnRecordListener(recordListener: OnRecordListener) {
+        this.recordListener = recordListener
     }
 
     fun setOnBasketAnimationEndListener(onBasketAnimationEndListener: OnBasketAnimationEnd) {
@@ -402,7 +507,6 @@ class RecordView : RelativeLayout {
         setMarginRight(marginRight, true)
     }
 
-
     fun setCustomSounds(startSound: Int, finishedSound: Int, errorSound: Int) {
         //0 means do not play sound
         RECORD_START = startSound
@@ -427,36 +531,37 @@ class RecordView : RelativeLayout {
         arrow!!.setColorFilter(color)
     }
 
-
     private fun setCancelBounds(cancelBounds: Float, convertDpToPixel: Boolean) {
-        val bounds = if (convertDpToPixel) DpUtil.toPixel(cancelBounds, mContext!!) else cancelBounds
+        val bounds =
+            if (convertDpToPixel) DpUtil.toPixel(cancelBounds, mContext!!) else cancelBounds
         this.cancelBounds = bounds
     }
 
     companion object {
 
-        val DEFAULT_CANCEL_BOUNDS = 8 //8dp
+        const val DEFAULT_CANCEL_BOUNDS = 8 //8dp
     }
 
     private fun setupRecorder() {
         recorder = OmRecorder.wav(
-                PullTransport.Default(mic(), PullTransport.OnAudioChunkPulledListener { }), file()
+            PullTransport.Default(mic(), PullTransport.OnAudioChunkPulledListener { }), file()
         )
     }
 
     private fun mic(): PullableSource {
         return PullableSource.Default(
-                AudioRecordConfig.Default(
-                        MediaRecorder.AudioSource.MIC, AudioFormat.ENCODING_PCM_16BIT,
-                        AudioFormat.CHANNEL_IN_MONO, 44100
-                )
+            AudioRecordConfig.Default(
+                MediaRecorder.AudioSource.MIC, AudioFormat.ENCODING_PCM_16BIT,
+                AudioFormat.CHANNEL_IN_MONO, 44100
+            )
         )
     }
 
-    @NonNull
     private fun file(): File {
-        @SuppressLint("SimpleDateFormat") val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss").format(Date())
-        val file = File(Environment.getExternalStorageDirectory().absolutePath, "$timeStamp.wav")
+        @SuppressLint("SimpleDateFormat")
+        val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss").format(Date())
+//        val file = File(Environment.getExternalStorageDirectory().absolutePath, "$timeStamp.m4a")
+        val file = File(context.cacheDir.absolutePath, "$timeStamp.m4a")
         audioPath = file.path
         return file
     }

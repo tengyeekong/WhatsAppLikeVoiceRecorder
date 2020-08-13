@@ -10,5 +10,5 @@ interface OnRecordListener {
     fun onCancel()
     fun onFinish(recordTime: Long, audioPath: String)
     fun onLessThanSecond()
-    fun onTikListener(recordTime: Long)
+    fun onTickListener(recordTime: Long)
 }

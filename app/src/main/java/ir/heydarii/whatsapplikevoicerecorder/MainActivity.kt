@@ -34,7 +34,7 @@ class MainActivity : AppCompatActivity() {
 
             }
 
-            override fun onTikListener(recordTime: Long) {
+            override fun onTickListener(recordTime: Long) {
                 Log.d("ACTION", "Tick $recordTime")
 
             }

@@ -19,10 +19,13 @@ class RecordButton : AppCompatImageView, View.OnTouchListener, View.OnClickListe
     private var recordView: RecordView? = null
     private var listenForRecord = true
     private var onRecordClickListener: OnRecordClickListener? = null
+    private var imgResource = 0
+    private var lockSendResource = 0
 
 
     fun setRecordView(recordView: RecordView) {
         this.recordView = recordView
+        recordView.setRecordButton(this)
     }
 
     constructor(context: Context) : super(context) {
@@ -35,19 +38,17 @@ class RecordButton : AppCompatImageView, View.OnTouchListener, View.OnClickListe
 
     constructor(context: Context, attrs: AttributeSet, defStyleAttr: Int) : super(context, attrs, defStyleAttr) {
         init(context, attrs)
-
-
     }
 
     private fun init(context: Context, attrs: AttributeSet?) {
         if (attrs != null) {
             val typedArray = context.obtainStyledAttributes(attrs, R.styleable.RecordButton)
 
-            val imageResource = typedArray.getResourceId(R.styleable.RecordButton_mic_icon, -1)
+            imgResource = typedArray.getResourceId(R.styleable.RecordButton_mic_icon, -1)
+            lockSendResource = typedArray.getResourceId(R.styleable.RecordButton_lock_send_resource, -1)
 
-
-            if (imageResource != -1) {
-                setTheImageResource(imageResource)
+            if (imgResource != -1) {
+                setTheImageResource(imgResource)
             }
 
             typedArray.recycle()
@@ -68,7 +69,7 @@ class RecordButton : AppCompatImageView, View.OnTouchListener, View.OnClickListe
         setClip(this)
     }
 
-    fun setClip(v: View) {
+    private fun setClip(v: View) {
         if (v.parent == null) {
             return
         }
@@ -84,11 +85,22 @@ class RecordButton : AppCompatImageView, View.OnTouchListener, View.OnClickListe
     }
 
 
-    private fun setTheImageResource(imageResource: Int) {
+    fun setTheImageResource(imageResource: Int) {
         val image = AppCompatResources.getDrawable(context, imageResource)
         setImageDrawable(image)
     }
 
+    fun getImageResource(): Int {
+        return imgResource
+    }
+
+    fun setLockedSendResource(lockSendResource: Int) {
+        this.lockSendResource = lockSendResource
+    }
+
+    fun getLockSendResource(): Int {
+        return lockSendResource
+    }
 
     override fun onTouch(v: View, event: MotionEvent): Boolean {
         if (listenForRecord) {
@@ -123,6 +135,9 @@ class RecordButton : AppCompatImageView, View.OnTouchListener, View.OnClickListe
 
 
     override fun onClick(v: View) {
+        if (recordView?.isLocked == true) {
+            return
+        }
         if (onRecordClickListener != null)
             onRecordClickListener!!.onClick(v)
     }

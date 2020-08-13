@@ -19,8 +19,13 @@ import androidx.vectordrawable.graphics.drawable.AnimatorInflaterCompat
 import android.view.View.INVISIBLE
 import android.view.View.VISIBLE
 
-class AnimationHelper(private val context: Context, private val basketImg: ImageView, private val smallBlinkingMic: ImageView) {
-    private val animatedVectorDrawable: AnimatedVectorDrawableCompat? = AnimatedVectorDrawableCompat.create(context, R.drawable.recv_basket_animated)
+class AnimationHelper(
+    private val context: Context,
+    private val basketImg: ImageView,
+    private val smallBlinkingMic: ImageView
+) {
+    private val animatedVectorDrawable: AnimatedVectorDrawableCompat? =
+        AnimatedVectorDrawableCompat.create(context, R.drawable.recv_basket_animated)
     private var alphaAnimation: AlphaAnimation? = null
     private var onBasketAnimationEndListener: OnBasketAnimationEnd? = null
     private var isBasketAnimating: Boolean = false
@@ -45,18 +50,17 @@ class AnimationHelper(private val context: Context, private val basketImg: Image
             micY = smallBlinkingMic.y
         }
 
-
-
-        micAnimation = AnimatorInflaterCompat.loadAnimator(context, R.animator.delete_mic_animation) as AnimatorSet
+        micAnimation = AnimatorInflaterCompat.loadAnimator(
+            context,
+            R.animator.delete_mic_animation
+        ) as AnimatorSet
         micAnimation!!.setTarget(smallBlinkingMic) // set the view you want to animate
-
 
         translateAnimation1 = TranslateAnimation(0f, 0f, basketInitialY, basketInitialY - 90)
         translateAnimation1!!.duration = 250
 
         translateAnimation2 = TranslateAnimation(0f, 0f, basketInitialY - 130, basketInitialY)
         translateAnimation2!!.duration = 350
-
 
         micAnimation!!.start()
         basketImg.setImageDrawable(animatedVectorDrawable)
@@ -79,8 +83,6 @@ class AnimationHelper(private val context: Context, private val basketImg: Image
                     smallBlinkingMic.visibility = INVISIBLE
                     basketImg.visibility = INVISIBLE
                 }, 450)
-
-
             }
 
             override fun onAnimationRepeat(animation: Animation) {
@@ -88,11 +90,8 @@ class AnimationHelper(private val context: Context, private val basketImg: Image
             }
         })
 
-
         translateAnimation2!!.setAnimationListener(object : Animation.AnimationListener {
-            override fun onAnimationStart(animation: Animation) {
-
-            }
+            override fun onAnimationStart(animation: Animation) {}
 
             override fun onAnimationEnd(animation: Animation) {
                 basketImg.visibility = INVISIBLE
@@ -106,12 +105,8 @@ class AnimationHelper(private val context: Context, private val basketImg: Image
                 }
             }
 
-            override fun onAnimationRepeat(animation: Animation) {
-
-            }
+            override fun onAnimationRepeat(animation: Animation) {}
         })
-
-
     }
 
 
@@ -130,7 +125,6 @@ class AnimationHelper(private val context: Context, private val basketImg: Image
             smallBlinkingMic.clearAnimation()
             basketImg.clearAnimation()
 
-
             if (handler1 != null)
                 handler1!!.removeCallbacksAndMessages(null)
             if (handler2 != null)
@@ -142,11 +136,8 @@ class AnimationHelper(private val context: Context, private val basketImg: Image
             smallBlinkingMic.visibility = View.GONE
 
             isBasketAnimating = false
-
-
         }
     }
-
 
     fun clearAlphaAnimation(hideView: Boolean) {
         alphaAnimation!!.cancel()
@@ -165,9 +156,15 @@ class AnimationHelper(private val context: Context, private val basketImg: Image
         smallBlinkingMic.startAnimation(alphaAnimation)
     }
 
-    fun moveRecordButtonAndSlideToCancelBack(recordBtn: RecordButton, slideToCancelLayout: FrameLayout, initialX: Float, difX: Float) {
+    fun moveRecordButtonAndSlideToCancelBack(
+        recordBtn: RecordButton?,
+        slideToCancelLayout: FrameLayout?,
+        initialX: Float,
+        difX: Float
+    ) {
+        if (recordBtn == null || slideToCancelLayout == null) return
 
-        val positionAnimator = ValueAnimator.ofFloat(recordBtn.x,initialX)
+        val positionAnimator = ValueAnimator.ofFloat(recordBtn.x, initialX)
 
         positionAnimator.interpolator = AccelerateDecelerateInterpolator()
         positionAnimator.addUpdateListener { animation ->
@@ -179,17 +176,14 @@ class AnimationHelper(private val context: Context, private val basketImg: Image
         positionAnimator.duration = 0
         positionAnimator.start()
 
-
         // if the move event was not called ,then the difX will still 0 and there is no need to move it back
         if (difX != 0f) {
             val x = initialX - difX
             slideToCancelLayout.animate()
-                    .x(x)
-                    .setDuration(0)
-                    .start()
+                .x(x)
+                .setDuration(0)
+                .start()
         }
-
-
     }
 
     fun resetSmallMic() {
@@ -200,7 +194,6 @@ class AnimationHelper(private val context: Context, private val basketImg: Image
 
     fun setOnBasketAnimationEndListener(onBasketAnimationEndListener: OnBasketAnimationEnd) {
         this.onBasketAnimationEndListener = onBasketAnimationEndListener
-
     }
 
     fun onAnimationEnd() {
