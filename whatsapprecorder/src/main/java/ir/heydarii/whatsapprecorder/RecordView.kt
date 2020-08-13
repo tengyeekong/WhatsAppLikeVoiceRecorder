@@ -4,7 +4,6 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.media.MediaPlayer
 import android.media.MediaRecorder
-import android.os.Environment
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
@@ -266,8 +265,7 @@ class RecordView : RelativeLayout {
                 slideToCancelLayout,
                 initialX,
                 difX,
-                initialY,
-                true
+                initialY
             )
         }
     }

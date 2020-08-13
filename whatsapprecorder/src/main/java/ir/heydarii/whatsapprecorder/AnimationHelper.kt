@@ -161,8 +161,7 @@ class AnimationHelper(
         slideToCancelLayout: FrameLayout?,
         initialX: Float,
         difX: Float,
-        initialY: Float,
-        isLocked: Boolean = false
+        initialY: Float
     ) {
         if (recordBtn == null || slideToCancelLayout == null) return
 

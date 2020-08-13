@@ -26,7 +26,7 @@ class MainActivity : AppCompatActivity() {
             }
 
             override fun onFinish(recordTime: Long, audioPath: String) {
-                Log.d("ACTION", "finish $recordTime")
+                Log.d("ACTION", "Finish $recordTime")
 
             }
 
